@@ -1,0 +1,6 @@
+{
+  "name": "Bharat Connect",
+  "description": "Secure, private, made in India communication platform with messaging, calls, meetings, and status updates.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
