@@ -1,6 +1,7 @@
 package com.example.ui.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.Chat
 import com.example.data.Message
-import com.example.data.MessageType
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.GoldAccent
 import com.example.viewmodel.BharatConnectViewModel
@@ -31,6 +31,7 @@ fun ChatDetailScreen(chat: Chat, viewModel: BharatConnectViewModel) {
   val messagesMap by viewModel.messages.collectAsState()
   val messages = messagesMap[chat.id] ?: emptyList()
   var textInput by remember { mutableStateOf("") }
+  var showAttachmentMenu by remember { mutableStateOf(false) }
 
   Scaffold(
     topBar = {
@@ -39,17 +40,35 @@ fun ChatDetailScreen(chat: Chat, viewModel: BharatConnectViewModel) {
           Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
               modifier = Modifier
-                .size(36.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(EmeraldPrimary),
               contentAlignment = Alignment.Center
             ) {
-              Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+              Icon(
+                imageVector = if (chat.isGroup) Icons.Default.Groups else Icons.Default.Person,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+              )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column {
               Text(text = chat.name, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-              Text(text = if (chat.isGroup) "${chat.membersCount} members" else "online", fontSize = 12.sp, color = Color.Gray)
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                  modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2E7D32))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                  text = if (chat.isGroup) "${chat.membersCount} members" else "online • End-to-end encrypted",
+                  fontSize = 11.sp,
+                  color = Color.Gray
+                )
+              }
             }
           }
         },
@@ -59,37 +78,43 @@ fun ChatDetailScreen(chat: Chat, viewModel: BharatConnectViewModel) {
           }
         },
         actions = {
-          IconButton(onClick = {
-            viewModel.startCall(
-              com.example.data.CallItem(
-                id = "call_${System.currentTimeMillis()}",
-                name = chat.name,
-                avatarUrl = chat.avatarUrl,
-                type = com.example.data.CallType.VOICE,
-                isIncoming = false,
-                isMissed = false,
-                timestamp = "Just now",
-                duration = "0 min"
+          IconButton(
+            onClick = {
+              viewModel.startCall(
+                com.example.data.CallItem(
+                  id = "call_${System.currentTimeMillis()}",
+                  name = chat.name,
+                  avatarUrl = chat.avatarUrl,
+                  type = com.example.data.CallType.VOICE,
+                  isIncoming = false,
+                  isMissed = false,
+                  timestamp = "Just now",
+                  duration = "0 min"
+                )
               )
-            )
-          }, modifier = Modifier.testTag("start_voice_call_button")) {
-            Icon(Icons.Default.Call, contentDescription = "Voice Call")
+            },
+            modifier = Modifier.testTag("start_voice_call_button")
+          ) {
+            Icon(Icons.Default.Call, contentDescription = "Voice Call", tint = EmeraldPrimary)
           }
-          IconButton(onClick = {
-            viewModel.startCall(
-              com.example.data.CallItem(
-                id = "call_${System.currentTimeMillis()}",
-                name = chat.name,
-                avatarUrl = chat.avatarUrl,
-                type = com.example.data.CallType.VIDEO,
-                isIncoming = false,
-                isMissed = false,
-                timestamp = "Just now",
-                duration = "0 min"
+          IconButton(
+            onClick = {
+              viewModel.startCall(
+                com.example.data.CallItem(
+                  id = "call_${System.currentTimeMillis()}",
+                  name = chat.name,
+                  avatarUrl = chat.avatarUrl,
+                  type = com.example.data.CallType.VIDEO,
+                  isIncoming = false,
+                  isMissed = false,
+                  timestamp = "Just now",
+                  duration = "0 min"
+                )
               )
-            )
-          }, modifier = Modifier.testTag("start_video_call_button")) {
-            Icon(Icons.Default.Videocam, contentDescription = "Video Call")
+            },
+            modifier = Modifier.testTag("start_video_call_button")
+          ) {
+            Icon(Icons.Default.Videocam, contentDescription = "Video Call", tint = EmeraldPrimary)
           }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -97,43 +122,67 @@ fun ChatDetailScreen(chat: Chat, viewModel: BharatConnectViewModel) {
     },
     bottomBar = {
       Surface(
-        tonalElevation = 4.dp,
+        tonalElevation = 6.dp,
         modifier = Modifier.fillMaxWidth()
       ) {
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          IconButton(onClick = {}) {
-            Icon(Icons.Default.AttachFile, contentDescription = "Attach", tint = EmeraldPrimary)
+        Column {
+          if (showAttachmentMenu) {
+            Row(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+              horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+              AttachmentOption(icon = Icons.Default.Image, label = "Gallery") { showAttachmentMenu = false }
+              AttachmentOption(icon = Icons.Default.Description, label = "Document") { showAttachmentMenu = false }
+              AttachmentOption(icon = Icons.Default.LocationOn, label = "Location") { showAttachmentMenu = false }
+              AttachmentOption(icon = Icons.Default.Headphones, label = "Audio") { showAttachmentMenu = false }
+            }
           }
-          OutlinedTextField(
-            value = textInput,
-            onValueChange = { textInput = it },
-            placeholder = { Text("Type a private message...") },
+
+          Row(
             modifier = Modifier
-              .weight(1f)
-              .padding(horizontal = 4.dp)
-              .testTag("message_input"),
-            shape = RoundedCornerShape(24.dp),
-            maxLines = 4
-          )
-          IconButton(
-            onClick = {
-              if (textInput.isNotBlank()) {
-                viewModel.sendMessage(chat.id, textInput)
-                textInput = ""
-              }
-            },
-            modifier = Modifier
-              .size(48.dp)
-              .clip(CircleShape)
-              .background(EmeraldPrimary)
-              .testTag("send_message_button")
+              .fillMaxWidth()
+              .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
           ) {
-            Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+            IconButton(onClick = { showAttachmentMenu = !showAttachmentMenu }) {
+              Icon(Icons.Default.AttachFile, contentDescription = "Attach", tint = EmeraldPrimary)
+            }
+            OutlinedTextField(
+              value = textInput,
+              onValueChange = { textInput = it },
+              placeholder = { Text("Message Bharat Connect...") },
+              modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 4.dp)
+                .testTag("message_input"),
+              shape = RoundedCornerShape(24.dp),
+              maxLines = 4,
+              colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = EmeraldPrimary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+              )
+            )
+            IconButton(
+              onClick = {
+                if (textInput.isNotBlank()) {
+                  viewModel.sendMessage(chat.id, textInput)
+                  textInput = ""
+                }
+              },
+              modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(EmeraldPrimary)
+                .testTag("send_message_button")
+            ) {
+              Icon(
+                imageVector = if (textInput.isBlank()) Icons.Default.Mic else Icons.Default.Send,
+                contentDescription = "Send",
+                tint = Color.White
+              )
+            }
           }
         }
       }
@@ -149,14 +198,56 @@ fun ChatDetailScreen(chat: Chat, viewModel: BharatConnectViewModel) {
         modifier = Modifier
           .fillMaxSize()
           .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         reverseLayout = true
       ) {
+        item {
+          Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+          ) {
+            Row(
+              modifier = Modifier.padding(12.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Icon(Icons.Default.Lock, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(18.dp))
+              Spacer(modifier = Modifier.width(8.dp))
+              Text(
+                text = "Messages and calls are end-to-end encrypted. No one outside of this chat, not even Bharat Connect, can read or listen to them. 🇮🇳",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 14.sp
+              )
+            }
+          }
+        }
+
         items(messages.reversed()) { message ->
           MessageBubble(message = message)
         }
       }
     }
+  }
+}
+
+@Composable
+fun AttachmentOption(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+  Column(
+    horizontalAlignment = Alignment.CenterHorizontally,
+    modifier = Modifier.clickable(onClick = onClick)
+  ) {
+    Box(
+      modifier = Modifier
+        .size(52.dp)
+        .clip(CircleShape)
+        .background(EmeraldPrimary.copy(alpha = 0.15f)),
+      contentAlignment = Alignment.Center
+    ) {
+      Icon(icon, contentDescription = label, tint = EmeraldPrimary, modifier = Modifier.size(26.dp))
+    }
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
   }
 }
 
@@ -185,7 +276,7 @@ fun MessageBubble(message: Message) {
           Text(text = message.senderName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GoldAccent)
           Spacer(modifier = Modifier.height(2.dp))
         }
-        Text(text = message.text, color = textColor, fontSize = 14.sp)
+        Text(text = message.text, color = textColor, fontSize = 14.sp, lineHeight = 18.sp)
         Spacer(modifier = Modifier.height(4.dp))
         Row(
           modifier = Modifier.align(Alignment.End),
